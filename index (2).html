@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom QR Code Generator</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+            padding-top: 30px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 550px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        /* Input and Customization Grid */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px 20px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        #qrInput, .controls-grid input[type="color"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            height: 40px;
+        }
+        
+        #qrInput {
+            grid-column: span 2; /* Full width for the main input */
+            height: 45px;
+        }
+
+        .controls-grid input[type="color"] {
+            padding: 0;
+            height: 35px;
+            cursor: pointer;
+        }
+
+        /* Buttons */
+        .button-section {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        .button-section button, .button-section a {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        #generateBtn {
+            background-color: #007bff;
+            color: white;
+        }
+        #generateBtn:hover {
+            background-color: #0056b3;
+        }
+
+        #downloadLink {
+            background-color: #28a745;
+            color: white;
+            opacity: 0.5; /* Disabled appearance initially */
+            pointer-events: none; /* Disabled interaction initially */
+        }
+        #downloadLink.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #downloadLink:hover {
+            background-color: #1e7e34;
+        }
+
+        /* QR Code Display */
+        .qr-code-box {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px dashed #ccc;
+            min-height: 200px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .qr-code-box img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* --- Footer Styling --- */
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: 30px;
+            background-color: #e9ecef;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        /* Link Styling for Name (Blue, No Underline) */
+        footer a {
+            color: #007bff; /* Blue color */
+            text-decoration: none; /* No underline */
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Custom QR Code Generator</h1>
+        
+        <div class="controls-grid">
+            
+            <div class="input-group" style="grid-column: span 2;">
+                <label for="qrInput">Enter Text or URL:</label>
+                <input type="text" id="qrInput" value="" placeholder="e.g., Hello World or https://example.com">
+            </div>
+
+            <div class="input-group">
+                <label for="colorFG">Foreground Color:</label>
+                <input type="color" id="colorFG" value="#000000">
+            </div>
+
+            <div class="input-group">
+                <label for="colorBG">Background Color:</label>
+                <input type="color" id="colorBG" value="#ffffff">
+            </div>
+
+            <div class="input-group">
+                <label for="transparentBG">Transparent Background:</label>
+                <input type="checkbox" id="transparentBG" style="width: auto; height: auto; margin-top: 10px;">
+            </div>
+
+        </div>
+
+        <div class="button-section">
+            <button id="generateBtn">Generate QR Code</button>
+            <a id="downloadLink" href="#" download="QRCode_Custom.png">Download PNG</a>
+        </div>
+
+        <div class="qr-code-box" id="qrCodeBox">
+            <p>Enter data and click "Generate" to see your QR code.</p>
+        </div>
+    </div>
+
+    <footer>
+    © 2025 <a href="https://saducasjeaboo.github.io/my-web/" target="_blank">Jeabo Ray Saducas</a>. All rights reserved.
+  </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputField = document.getElementById('qrInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const qrCodeBox = document.getElementById('qrCodeBox');
+            const colorFG = document.getElementById('colorFG');
+            const colorBG = document.getElementById('colorBG');
+            const transparentBG = document.getElementById('transparentBG');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            // Base URL for the external QR Code API
+            const API_URL = "https://api.qrserver.com/v1/create-qr-code/?size=250x250";
+            
+            // Helper function to remove '#' from color strings
+            const cleanColor = (color) => color.replace('#', '');
+
+            function generateQrCode() {
+                const data = inputField.value.trim();
+                
+                qrCodeBox.innerHTML = '';
+                downloadLink.classList.remove('active');
+
+                if (!data) {
+                    qrCodeBox.innerHTML = '<p style="color: red;">Please enter data to generate the QR code.</p>';
+                    return;
+                }
+
+                const fg = cleanColor(colorFG.value);
+                let bg = cleanColor(colorBG.value);
+                
+                // API for transparency uses "transparent" keyword instead of a color code
+                if (transparentBG.checked) {
+                    bg = 'transparent';
+                }
+
+                // Construct the final API request URL
+                const finalUrl = `${API_URL}&data=${encodeURIComponent(data)}&color=${fg}&bgcolor=${bg}`;
+
+                // Create and display the image
+                const img = document.createElement('img');
+                img.src = finalUrl;
+                img.alt = "Generated QR Code";
+                img.onerror = () => {
+                    qrCodeBox.innerHTML = '<p style="color: red;">Error generating QR code. Please check your input.</p>';
+                };
+                
+                qrCodeBox.appendChild(img);
+
+                // Update download link
+                downloadLink.href = finalUrl;
+                downloadLink.classList.add('active');
+            }
+
+            // Event Listeners
+            generateBtn.addEventListener('click', generateQrCode);
+            
+            // (Optional) Generate when colors/transparency change, only if input is not empty
+            colorFG.addEventListener('input', () => { if(inputField.value.trim()) generateQrCode(); });
+            colorBG.addEventListener('input', () => { if(inputField.value.trim()) generateQrCode(); });
+            transparentBG.addEventListener('change', () => { if(inputField.value.trim()) generateQrCode(); });
+        });
+    </script>
+
+</body>
+</html>
